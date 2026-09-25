@@ -170,7 +170,10 @@ label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4
   font-weight: 700;
   background: var(--surface-2);
   border: 2px solid var(--free);
+  position: relative;
+  overflow: hidden;
 }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--surface-2); }
 .avatar.lg { width: 72px; height: 72px; font-size: 1.6rem; }
 .attr-Vaccine { border-color: var(--vaccine); }
 .attr-Data { border-color: var(--data); }
@@ -277,3 +280,24 @@ dialog h2 { margin-top: 0; font-size: 1.1rem; }
 
 .muted { color: var(--muted); }
 .small { font-size: .85rem; }
+
+.count-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.count-row .count { margin: 0; }
+.sort { display: flex; align-items: center; gap: 6px; margin: 0; }
+.sort select { width: auto; padding: 6px 8px; }
+
+.stat-bars { display: grid; gap: 6px; }
+.stat-bar { display: grid; grid-template-columns: 40px 1fr 52px; align-items: center; gap: 8px; font-size: .85rem; }
+.stat-bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); }
+
+.sub-h { margin: 10px 0 6px; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.resists { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.resist { display: flex; justify-content: space-between; gap: 6px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); font-size: .8rem; }
+.resist b { font-weight: 600; color: var(--muted); }
+.resist.weak b { color: var(--danger); }
+.resist.resist b { color: var(--ok); }
+.resist.null b { color: var(--vaccine); }
+
+.skill { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); margin-bottom: 8px; }

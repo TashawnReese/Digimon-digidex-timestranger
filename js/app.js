@@ -9,6 +9,7 @@ const ui = {
   dexQuery: '',
   dexStage: 'All',
   dexAttr: 'All',
+  dexSort: 'number',
   plannerFrom: '',
   plannerTo: '',
   forwardOnly: false,
@@ -23,11 +24,15 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
 const initials = name => esc(name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2));
 
 function avatar(d, size = '') {
-  return `<span class="avatar ${size} attr-${esc(d.attribute)}" aria-hidden="true">${initials(d.name)}</span>`;
+  const img = d.image
+    ? `<img src="${esc(d.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+    : '';
+  return `<span class="avatar ${size} attr-${esc(d.attribute)}" aria-hidden="true">${initials(d.name)}${img}</span>`;
 }
 
 function badges(d) {
   return [
+    d.number && `<span class="badge">#${esc(d.number)}</span>`,
     d.stage && `<span class="badge">${esc(d.stage)}</span>`,
     d.attribute && `<span class="badge ${esc(d.attribute)}">${esc(d.attribute)}</span>`,
     d.type && `<span class="badge">${esc(d.type)}</span>`,
@@ -121,27 +126,37 @@ function renderDex() {
   const tracked = new Set(store.getTeam().map(m => m.digimonId));
 
   const q = ui.dexQuery.trim().toLowerCase();
-  const list = store.sortDigimon(data.digimon).filter(d =>
+  const list = store.sortDigimon(data.digimon, ui.dexSort).filter(d =>
     (ui.dexStage === 'All' || d.stage === ui.dexStage) &&
     (ui.dexAttr === 'All' || d.attribute === ui.dexAttr) &&
-    (!q || d.name.toLowerCase().includes(q) || (d.type || '').toLowerCase().includes(q))
+    (!q || d.name.toLowerCase().includes(q) || (d.type || '').toLowerCase().includes(q) ||
+      String(d.number) === q.replace('#', '') ||
+      (d.traits || []).some(t => t.toLowerCase().includes(q)))
   );
 
   view.innerHTML = `
-    <input class="search" type="search" id="dex-search" placeholder="Search Digimon or type…" value="${esc(ui.dexQuery)}" autocomplete="off">
+    <input class="search" type="search" id="dex-search" placeholder="Search name, #, type or trait…" value="${esc(ui.dexQuery)}" autocomplete="off">
     <div class="chips" id="stage-chips">
       ${stages.map(s => `<button class="chip ${s === ui.dexStage ? 'active' : ''}" data-stage="${esc(s)}">${esc(s)}</button>`).join('')}
     </div>
     <div class="chips" id="attr-chips">
       ${attrs.map(a => `<button class="chip ${a === ui.dexAttr ? 'active' : ''}" data-attr="${esc(a)}">${esc(a)}</button>`).join('')}
     </div>
-    <div class="count">${list.length} of ${data.digimon.length} Digimon</div>
+    <div class="count-row">
+      <span class="count">${list.length} of ${data.digimon.length} Digimon</span>
+      <label class="sort">Sort
+        <select id="dex-sort">
+          ${[['number', 'No.'], ['stage', 'Stage'], ['name', 'A–Z']].map(([v, l]) =>
+            `<option value="${v}" ${v === ui.dexSort ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </label>
+    </div>
     ${list.length ? `<ul class="list">${list.map(d => `
       <li><a class="list-item" href="#/digimon/${encodeURIComponent(d.id)}">
         ${avatar(d)}
         <span class="grow">
           <span class="name">${esc(d.name)} ${tracked.has(d.id) ? '<span class="star" title="On your team">&#9733;</span>' : ''}</span>
-          <span class="sub">${esc([d.stage, d.attribute, d.type].filter(Boolean).join(' · '))}</span>
+          <span class="sub">${esc([d.number && `#${d.number}`, d.stage, d.attribute, d.type].filter(Boolean).join(' · '))}</span>
         </span>
         ${d.verified === false ? '<span class="badge unverified">?</span>' : ''}
       </a></li>`).join('')}</ul>`
@@ -157,6 +172,7 @@ function renderDex() {
     s.focus();
     s.setSelectionRange(pos, pos);
   });
+  view.querySelector('#dex-sort').onchange = e => { ui.dexSort = e.target.value; rerender(); };
   view.querySelectorAll('[data-stage]').forEach(b => b.addEventListener('click', () => { ui.dexStage = b.dataset.stage; rerender(); }));
   view.querySelectorAll('[data-attr]').forEach(b => b.addEventListener('click', () => { ui.dexAttr = b.dataset.attr; rerender(); }));
 }
@@ -191,6 +207,33 @@ function treeHTML(currentId) {
     <div class="tree-col"><h4>${esc(stage)}</h4>
       ${ds.map(d => `<a class="tree-node ${d.id === currentId ? 'current' : ''}" href="#/digimon/${encodeURIComponent(d.id)}">${esc(d.name)}</a>`).join('')}
     </div>`).join('')}</div>`;
+}
+
+function statsHTML(stats) {
+  const max = Math.max(...Object.values(stats), 1);
+  return `<div class="stat-bars">${Object.entries(stats).map(([k, v]) => `
+    <div class="stat-bar"><span>${esc(k)}</span>
+      <div class="bar"><div style="width:${Math.round(100 * v / max)}%"></div></div>
+      <b>${esc(v)}</b></div>`).join('')}</div>`;
+}
+
+const RESIST_LABEL = { weak: 'Weak', resist: 'Resist', null: 'Null', neutral: '–' };
+
+function resistHTML(res = {}) {
+  const row = obj => `<div class="resists">${Object.entries(obj || {}).map(([k, v]) =>
+    `<span class="resist ${esc(v)}"><span>${esc(k)}</span><b>${esc(RESIST_LABEL[v] ?? v)}</b></span>`).join('')}</div>`;
+  return `<h4 class="sub-h">Attribute</h4>${row(res.attribute)}<h4 class="sub-h">Element</h4>${row(res.element)}`;
+}
+
+function skillsHTML(skills) {
+  return skills.map(sk => `
+    <div class="skill">
+      <div class="evo-head">
+        <span>${sk.level != null ? `<span class="dir">Lv ${esc(sk.level)}</span> ` : ''}${esc(sk.name)}</span>
+        <span class="dir">${esc([sk.element, sk.kind, sk.sp != null && `${sk.sp} SP`].filter(Boolean).join(' · '))}</span>
+      </div>
+      ${sk.description ? `<div class="req-other">${esc(sk.description)}</div>` : ''}
+    </div>`).join('');
 }
 
 function renderDigimon(id) {
@@ -242,6 +285,13 @@ function renderDigimon(id) {
       <h3>Digivolution line</h3>
       ${treeHTML(id)}
     </div>
+
+    ${d.stats99 ? `<div class="card"><h3>Level 99 stats</h3>${statsHTML(d.stats99)}</div>` : ''}
+    ${d.resistances ? `<div class="card"><h3>Resistances</h3>${resistHTML(d.resistances)}</div>` : ''}
+    ${d.specialSkills?.length ? `<div class="card"><h3>Special skill</h3>${skillsHTML(d.specialSkills)}</div>` : ''}
+    ${d.attachmentSkills?.length ? `<div class="card"><h3>Learnable attachment skills</h3>${skillsHTML(d.attachmentSkills)}</div>` : ''}
+    ${d.traits?.length ? `<div class="card"><h3>Traits</h3>${d.traits.map(t => `<span class="badge">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${d.source ? `<p class="small muted">Source: <a href="${esc(d.source)}" target="_blank" rel="noopener">Game8</a></p>` : ''}
   `;
 
   view.querySelector('#add-team').onclick = () => {

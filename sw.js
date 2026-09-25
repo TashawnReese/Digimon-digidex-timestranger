@@ -1,5 +1,5 @@
 // Offline support: serve the app shell from cache, refresh in the background.
-const CACHE = 'digidex-v1';
+const CACHE = 'digidex-v2';
 const ASSETS = [
   './',
   'index.html',

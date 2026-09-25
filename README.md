@@ -5,14 +5,16 @@ A phone-friendly web app for tracking Digimon and planning digivolution lines in
 your phone's browser, add it to your home screen, and it works like an app,
 including offline.
 
-Reference for game data: [Grindosaur's Time Stranger digivolution planner](https://www.grindosaur.com/en/games/digimon-story-time-stranger/digivolution-planner?line=impmon).
+Game data comes from [Game8's Time Stranger guide](https://game8.co/games/Digimon-Story-Time-Stranger/archives/554944):
+every Digimon, its digivolutions and requirements, level 99 stats, resistances, skills and traits.
 
 ## Features
 
 - **Dex**: search and filter Digimon by stage and attribute.
-- **Digimon page**: stage, attribute and type; what it digivolves to and from,
-  with requirements (level, Agent Rank, stats, other conditions); and its full
-  digivolution line grouped by stage.
+- **Digimon page**: Field Guide number, stage, attribute, type and personality;
+  what it digivolves to and from, with requirements (Agent Rank, stats, other
+  conditions); its full digivolution line grouped by stage; level 99 stats,
+  attribute and element resistances, special and attachment skills, and traits.
 - **Planner**: pick a starting Digimon and a goal to get the shortest route,
   including de-digivolution steps if you allow them, with the requirements for
   each step.
@@ -43,8 +45,22 @@ Bundled data lives in [`data/digimon.json`](data/digimon.json):
 ```
 
 Digivolutions are one-way edges (`from` → `to`). De-digivolution is the same
-edge followed backwards. Entries with `"verified": false` are starter
-placeholders that still need checking against the reference site.
+edge followed backwards. Requirements are the ones for digivolving into the `to`
+Digimon.
+
+### Refreshing the data
+
+`tools/scrape_game8.py` rebuilds `data/digimon.json` from Game8. It fetches
+one page every 1.5 seconds and caches pages in `tools/.cache/`. Delete that
+folder to fetch fresh copies.
+
+```sh
+pip install beautifulsoup4 lxml
+python3 tools/scrape_game8.py
+```
+
+Bump `version` in the JSON whenever it changes. The app then merges the new
+data on next launch and keeps anything the user edited by hand.
 
 ## Running it
 

@@ -73,6 +73,8 @@ export async function init() {
   } catch {
     data = structuredClone(bundled);
   }
+  // A newer app dataset arrived: bring it in, keeping the user's own edits.
+  if (saved && (bundled.version || 0) > (data.version || 0)) mergeBundled();
   team = readJSON(TEAM_KEY) || [];
 }
 
@@ -93,19 +95,22 @@ export const stageIndex = stage => {
   return i === -1 ? data.stages.length : i;
 };
 
-export function sortDigimon(list) {
-  return [...list].sort((a, b) => stageIndex(a.stage) - stageIndex(b.stage) || a.name.localeCompare(b.name));
+export function sortDigimon(list, by = 'stage') {
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const byNumber = (a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || byName(a, b);
+  const byStage = (a, b) => stageIndex(a.stage) - stageIndex(b.stage) || byName(a, b);
+  return [...list].sort(by === 'number' ? byNumber : by === 'name' ? byName : byStage);
 }
 
 export function upsertDigimon(d, originalId) {
   const id = originalId || d.id || slugify(d.name);
   const existing = data.digimon.findIndex(x => x.id === id);
   if (existing >= 0) {
-    data.digimon[existing] = { ...data.digimon[existing], ...d, id };
+    data.digimon[existing] = { ...data.digimon[existing], ...d, id, edited: true };
   } else {
     let newId = id;
     for (let n = 2; getDigimon(newId); n++) newId = `${id}-${n}`;
-    data.digimon.push({ ...d, id: newId });
+    data.digimon.push({ ...d, id: newId, edited: true });
     saveData();
     return newId;
   }
@@ -131,8 +136,8 @@ export function upsertEvolution(evo, original) {
   const idx = data.evolutions.findIndex(e => same(e, key));
   data.evolutions = data.evolutions.filter((e, i) => i === idx || !same(e, evo));
   const at = data.evolutions.findIndex(e => same(e, key));
-  if (at >= 0) data.evolutions[at] = evo;
-  else data.evolutions.push(evo);
+  if (at >= 0) data.evolutions[at] = { ...evo, edited: true };
+  else data.evolutions.push({ ...evo, edited: true });
   saveData();
 }
 
@@ -200,19 +205,19 @@ export function importJSON(text, { merge = false } = {}) {
   return data;
 }
 
-// Adds anything from `incoming` that is missing in `base`, and lets
-// incoming verified entries replace unverified ones in `base`.
+// Starts from `incoming` and layers on top every entry the user edited
+// or added by hand in `base`. Unedited entries in `base` are replaced.
 function mergeData(base, incoming) {
-  const out = structuredClone(base);
-  for (const d of incoming.digimon) {
+  const out = structuredClone(incoming);
+  for (const d of base.digimon.filter(x => x.edited)) {
     const i = out.digimon.findIndex(x => x.id === d.id);
     if (i === -1) out.digimon.push(d);
-    else if (d.verified && !out.digimon[i].verified) out.digimon[i] = d;
+    else out.digimon[i] = { ...out.digimon[i], ...d };
   }
-  for (const e of incoming.evolutions) {
+  for (const e of base.evolutions.filter(x => x.edited)) {
     const i = out.evolutions.findIndex(x => x.from === e.from && x.to === e.to);
     if (i === -1) out.evolutions.push(e);
-    else if (e.verified && !out.evolutions[i].verified) out.evolutions[i] = e;
+    else out.evolutions[i] = e;
   }
   return normalize(out);
 }
