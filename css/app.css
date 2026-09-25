@@ -215,13 +215,12 @@ label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4
 .req-other { font-size: .82rem; color: var(--muted); margin-top: 4px; }
 
 /* Line tree (stage columns) */
-.tree { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
-.tree-col { flex: 0 0 auto; min-width: 120px; }
-.tree-col h4 { margin: 0 0 6px; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.tree { display: grid; gap: 10px; }
+.tree-col { display: flex; flex-wrap: wrap; gap: 6px; }
+.tree-col h4 { flex: 0 0 100%; margin: 0; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .tree-node {
   display: block;
-  padding: 8px 10px;
-  margin-bottom: 6px;
+  padding: 6px 10px;
   border-radius: 8px;
   background: var(--surface-2);
   border: 1px solid var(--border);

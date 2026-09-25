@@ -10,6 +10,7 @@ const ui = {
   dexStage: 'All',
   dexAttr: 'All',
   dexSort: 'number',
+  fullLine: false,
   plannerFrom: '',
   plannerTo: '',
   forwardOnly: false,
@@ -44,7 +45,8 @@ function badges(d) {
 function reqsHTML(req = {}) {
   const parts = [];
   if (req.level) parts.push(`Lv ${esc(req.level)}+`);
-  if (req.agentRank) parts.push(`Agent Rank ${esc(req.agentRank)}`);
+  if (req.agentRank) parts.push(`Agent Rank ${esc(req.agentRank)}+`);
+  if (req.talent) parts.push(`Talent ${esc(req.talent)}+`);
   for (const [k, v] of Object.entries(req.stats || {})) {
     if (v !== '' && v != null) parts.push(`${esc(k)} ${esc(v)}+`);
   }
@@ -195,8 +197,8 @@ function evoRow(e, otherId) {
     </div>`;
 }
 
-function treeHTML(currentId) {
-  const line = store.lineOf(currentId);
+function treeHTML(currentId, depth = 2) {
+  const line = store.lineOf(currentId, depth);
   const byStage = new Map();
   for (const d of line) {
     const key = d.stage || 'Unknown';
@@ -283,7 +285,9 @@ function renderDigimon(id) {
 
     <div class="card">
       <h3>Digivolution line</h3>
-      ${treeHTML(id)}
+      <p class="small muted">${ui.fullLine ? 'Every Digimon connected to' : 'Up to 2 steps before and after'} ${esc(d.name)}.</p>
+      ${treeHTML(id, ui.fullLine ? Infinity : 2)}
+      <button class="btn small" id="toggle-line">${ui.fullLine ? 'Show nearby only' : 'Show full line'}</button>
     </div>
 
     ${d.stats99 ? `<div class="card"><h3>Level 99 stats</h3>${statsHTML(d.stats99)}</div>` : ''}
@@ -303,6 +307,7 @@ function renderDigimon(id) {
     ui.plannerFrom = id;
     location.hash = '#/planner';
   };
+  view.querySelector('#toggle-line').onclick = () => { ui.fullLine = !ui.fullLine; rerender(); };
   view.querySelector('#edit-digimon').onclick = () => openDigimonForm(d);
   view.querySelector('#add-next').onclick = () => openEvolutionForm({ from: id });
   view.querySelector('#add-prev').onclick = () => openEvolutionForm({ to: id });
@@ -664,6 +669,7 @@ function openEvolutionForm(evo = {}) {
     <div class="stat-grid">
       <div><label for="e-level">Level</label><input id="e-level" name="level" type="number" inputmode="numeric" value="${esc(req.level)}"></div>
       <div><label for="e-rank">Agent Rank</label><input id="e-rank" name="agentRank" type="number" inputmode="numeric" value="${esc(req.agentRank)}"></div>
+      <div><label for="e-talent">Talent</label><input id="e-talent" name="talent" type="number" inputmode="numeric" value="${esc(req.talent)}"></div>
       ${data.stats.map(s => `
         <div><label for="e-${esc(s)}">${esc(s)}</label>
         <input id="e-${esc(s)}" name="stat:${esc(s)}" type="number" inputmode="numeric" value="${esc(req.stats?.[s])}"></div>`).join('')}
@@ -694,7 +700,7 @@ function openEvolutionForm(evo = {}) {
       const v = num(fd.get(`stat:${s}`));
       if (v !== undefined) stats[s] = v;
     }
-    const requirements = { level: num(fd.get('level')), agentRank: num(fd.get('agentRank')), stats, other: fd.get('other').trim() || undefined };
+    const requirements = { level: num(fd.get('level')), agentRank: num(fd.get('agentRank')), talent: num(fd.get('talent')), stats, other: fd.get('other').trim() || undefined };
     store.upsertEvolution({ from, to, requirements, verified: fd.get('verified') === 'on' }, existing);
     toast('Saved');
     rerender();

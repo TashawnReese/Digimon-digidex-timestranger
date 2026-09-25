@@ -148,21 +148,24 @@ export function deleteEvolution(from, to) {
 
 // ---- Graph ----
 
-// Every Digimon reachable backwards (pre-evolutions) and forwards
-// (digivolutions) from `id`, used to draw its line.
-export function lineOf(id) {
+// Digimon reachable backwards (pre-evolutions) and forwards (digivolutions)
+// from `id`, up to `depth` steps each way, used to draw its line.
+export function lineOf(id, depth = Infinity) {
   const ids = new Set([id]);
-  const walk = (start, next) => {
-    const queue = [start];
-    while (queue.length) {
-      const cur = queue.shift();
-      for (const n of next(cur)) {
-        if (!ids.has(n)) { ids.add(n); queue.push(n); }
+  const walk = next => {
+    let frontier = [id];
+    for (let d = 0; d < depth && frontier.length; d++) {
+      const found = [];
+      for (const cur of frontier) {
+        for (const n of next(cur)) {
+          if (!ids.has(n)) { ids.add(n); found.push(n); }
+        }
       }
+      frontier = found;
     }
   };
-  walk(id, cur => evolutionsTo(cur).map(e => e.from));
-  walk(id, cur => evolutionsFrom(cur).map(e => e.to));
+  walk(cur => evolutionsTo(cur).map(e => e.from));
+  walk(cur => evolutionsFrom(cur).map(e => e.to));
   return sortDigimon([...ids].map(getDigimon).filter(Boolean));
 }
 

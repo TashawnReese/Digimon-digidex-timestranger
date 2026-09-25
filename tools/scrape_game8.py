@@ -29,7 +29,8 @@ OUT = ROOT / 'data' / 'digimon.json'
 DELAY = 1.5  # seconds between requests
 USER_AGENT = 'Mozilla/5.0 (compatible; DigiDexTimeStranger/1.0; personal fan app)'
 
-STAT_NAMES = {'max hp': 'HP', 'hp': 'HP', 'max sp': 'SP', 'sp': 'SP', 'atk': 'ATK', 'def': 'DEF',
+STAT_RE = re.compile(r'(\d[\d,]*)\s*\+?\s*(Max HP|Max SP|Max H|HP|SP|ATK|DEF|INT|SPI|SPD|Talent)\b\+?', re.I)
+STAT_NAMES = {'max h': 'HP', 'max hp': 'HP', 'hp': 'HP', 'max sp': 'SP', 'sp': 'SP', 'atk': 'ATK', 'def': 'DEF',
               'int': 'INT', 'spi': 'SPI', 'spd': 'SPD'}
 RESIST_SYMBOLS = {'⭘': 'weak', '○': 'weak', '◯': 'weak', '△': 'resist', '✕': 'null', '×': 'null',
                   '-': 'neutral', '－': 'neutral'}
@@ -100,19 +101,20 @@ def parse_requirements(cell):
     req = {'stats': {}, 'raw': raw}
     other = []
     for line in raw:
-        m = re.match(r'Agent Rank (\d+)', line, re.I)
+        m = re.match(r'Agent Rank (\d+)(?: or higher)?', line, re.I)
         if m:
             req['agentRank'] = int(m.group(1))
-            continue
-        m = re.match(r'([\d,]+)\+?\s*(Max HP|Max SP|HP|SP|ATK|DEF|INT|SPI|SPD)\b', line, re.I)
-        if m:
-            req['stats'][STAT_NAMES[m.group(2).lower()]] = int(m.group(1).replace(',', ''))
-            continue
-        m = re.match(r'(?:Lv\.?|Level)\s*(\d+)', line, re.I)
-        if m:
-            req['level'] = int(m.group(1))
-            continue
-        other.append(line)
+            line = line[m.end():]
+        # Tolerates Game8's typos: "550 DEF+", "1830 + INT", "2470+ Max H".
+        for num, stat in STAT_RE.findall(line):
+            value = int(num.replace(',', ''))
+            if stat.lower() == 'talent':
+                req['talent'] = value
+            else:
+                req['stats'][STAT_NAMES[stat.lower()]] = value
+        rest = STAT_RE.sub('', line).strip(' .')
+        if rest:
+            other.append(rest)
     if other:
         req['other'] = ' · '.join(other)
     if not req['stats']:
@@ -304,7 +306,9 @@ def main():
             if src not in ids or dst not in ids or (src, dst) in seen:
                 continue
             seen.add((src, dst))
-            req = pages.get(dst, {}).get('requirements') or pages.get(src, {}).get('digivolveTo', {}).get(dst) or {}
+            # The source page lists this exact route; the target page lumps all
+            # routes together (e.g. "Mode change from …"), so it's only a fallback.
+            req = pages.get(src, {}).get('digivolveTo', {}).get(dst) or pages.get(dst, {}).get('requirements') or {}
             req = {k: v for k, v in req.items() if k != 'raw'}
             evolutions.append({'from': ids[src], 'to': ids[dst], 'requirements': req, 'verified': True})
 
