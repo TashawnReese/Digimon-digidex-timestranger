@@ -66,7 +66,7 @@ function toast(msg) {
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = msg;
-  document.body.appendChild(el);
+  (dialog.open ? dialog : document.body).appendChild(el);
   setTimeout(() => el.remove(), 2200);
 }
 
@@ -489,8 +489,8 @@ function renderMember(uid) {
   view.querySelector('#do-next')?.addEventListener('click', () => move(plan[0].to));
   view.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', () => move(b.dataset.move)));
   view.querySelector('#undo').onclick = () => { store.undoMove(uid); rerender(); };
-  view.querySelector('#remove').onclick = () => {
-    if (confirm(`Remove ${m.nickname || d.name} from your team?`)) {
+  view.querySelector('#remove').onclick = async () => {
+    if (await confirmAction(`Remove ${m.nickname || d.name}?`, 'This removes it from My Team, including its goal, notes and history.', 'Remove')) {
       store.removeMember(uid);
       location.hash = '#/team';
     }
@@ -570,8 +570,8 @@ function renderData() {
   };
   view.querySelector('#paste').onclick = () => openPasteForm();
   view.querySelector('#merge-bundled').onclick = () => { store.mergeBundled(); toast('Merged'); rerender(); };
-  view.querySelector('#reset').onclick = () => {
-    if (confirm('Throw away all your data edits and go back to the bundled data?')) {
+  view.querySelector('#reset').onclick = async () => {
+    if (await confirmAction('Reset to app data?', 'This throws away every Digimon and digivolution you added or edited. Your team stays.', 'Reset')) {
       store.resetToBundled();
       toast('Reset');
       rerender();
@@ -584,30 +584,53 @@ function renderData() {
   }));
 }
 
-function doImport(text) {
-  const merge = confirm('Merge into your current data?\n\nOK = merge (keeps your edits)\nCancel = replace everything');
+async function doImport(text) {
+  const choice = await ask('Import data', 'Merge keeps your own edits on top of the imported data. Replace uses only the imported data.', [
+    { label: 'Cancel', value: 'cancel' },
+    { label: 'Replace', value: 'replace', cls: 'danger' },
+    { label: 'Merge', value: 'merge', cls: 'primary' },
+  ]);
+  if (!choice || choice === 'cancel') return;
   try {
-    const d = store.importJSON(text, { merge });
+    const d = store.importJSON(text, { merge: choice === 'merge' });
     toast(`Loaded ${d.digimon.length} Digimon`);
     rerender();
   } catch (err) {
-    alert(`Couldn't import: ${err.message}`);
+    ask("Couldn't import", `That isn't valid DigiDex data (${err.message}). Check that you copied the whole file.`, [{ label: 'OK', value: 'ok', cls: 'primary' }]);
   }
 }
 
 // ---------- Forms ----------
 
-function openDialog(html, onSubmit) {
+function openDialog(html, onSubmit, onCancel) {
+  if (dialog.open) dialog.close();
   dialog.innerHTML = `<form method="dialog" id="dlg-form">${html}</form>`;
   const form = dialog.querySelector('form');
   form.addEventListener('submit', e => {
     const action = e.submitter?.value;
-    if (action === 'cancel') return;
+    if (action === 'cancel') { onCancel?.(); return; }
     e.preventDefault();
-    if (onSubmit(new FormData(form), action) !== false) dialog.close();
+    // onSubmit may have opened another dialog in its place; leave that one open.
+    if (onSubmit(new FormData(form), action) !== false && dialog.querySelector('form') === form) dialog.close();
   });
+  dialog.oncancel = () => onCancel?.();
   dialog.showModal();
 }
+
+// In-app replacement for confirm(): resolves to the tapped button's value, or null.
+function ask(title, message, buttons) {
+  return new Promise(resolve => {
+    openDialog(`
+      <h2>${esc(title)}</h2>
+      ${message ? `<p class="small">${esc(message)}</p>` : ''}
+      <div class="btn-row">${buttons.map(b =>
+        `<button class="btn ${b.cls || ''}" value="${esc(b.value)}" ${b.value === 'cancel' ? 'formnovalidate' : ''}>${esc(b.label)}</button>`).join('')}
+      </div>`, (fd, action) => resolve(action), () => resolve(null));
+  });
+}
+
+const confirmAction = async (title, message, okLabel) =>
+  (await ask(title, message, [{ label: 'Cancel', value: 'cancel' }, { label: okLabel, value: 'ok', cls: 'danger' }])) === 'ok';
 
 function openDigimonForm(d = null) {
   const data = store.getData();
@@ -635,9 +658,11 @@ function openDigimonForm(d = null) {
     </div>
   `, (fd, action) => {
     if (action === 'delete') {
-      if (!confirm(`Delete ${d.name} and all its digivolutions?`)) return false;
-      store.deleteDigimon(d.id);
-      location.hash = '#/dex';
+      confirmAction(`Delete ${d.name}?`, 'This also deletes every digivolution to or from it.', 'Delete').then(ok => {
+        if (!ok) return;
+        store.deleteDigimon(d.id);
+        location.hash = '#/dex';
+      });
       return;
     }
     const entry = {
@@ -693,7 +718,7 @@ function openEvolutionForm(evo = {}) {
     }
     const from = fd.get('from');
     const to = fd.get('to');
-    if (from === to) { alert('A Digimon can’t digivolve into itself.'); return false; }
+    if (from === to) { toast('Pick two different Digimon.'); return false; }
     const num = v => (v === '' || v == null ? undefined : Number(v));
     const stats = {};
     for (const s of data.stats) {
@@ -716,7 +741,7 @@ function openPasteForm() {
       <button class="btn" value="cancel" formnovalidate>Cancel</button>
       <button class="btn primary" value="import">Import</button>
     </div>
-  `, fd => { setTimeout(() => doImport(fd.get('json')), 0); });
+  `, fd => { doImport(fd.get('json')); });
 }
 
 // ---------- boot ----------
