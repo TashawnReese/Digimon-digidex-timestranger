@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "game": "Digimon Story: Time Stranger",
+  "source": "https://www.grindosaur.com/en/games/digimon-story-time-stranger/digivolution-planner?line=impmon",
+  "note": "Starter data. Entries with \"verified\": false are placeholders that still need checking against the source. Edit them in the app (Data tab) or in this file.",
+  "stats": ["HP", "SP", "ATK", "DEF", "INT", "SPI", "SPD"],
+  "stages": ["In-Training I", "In-Training II", "Rookie", "Champion", "Ultimate", "Mega", "Mega+", "Armor"],
+  "digimon": [
+    { "id": "zurumon", "name": "Zurumon", "stage": "In-Training I", "attribute": "Virus", "type": "Slime", "verified": false },
+    { "id": "yaamon", "name": "Yaamon", "stage": "In-Training II", "attribute": "Virus", "type": "Lesser", "verified": false },
+    { "id": "impmon", "name": "Impmon", "stage": "Rookie", "attribute": "Virus", "type": "Imp", "verified": false },
+    { "id": "devimon", "name": "Devimon", "stage": "Champion", "attribute": "Virus", "type": "Fallen Angel", "verified": false },
+    { "id": "wizardmon", "name": "Wizardmon", "stage": "Champion", "attribute": "Data", "type": "Wizard", "verified": false },
+    { "id": "skullsatamon", "name": "SkullSatamon", "stage": "Ultimate", "attribute": "Virus", "type": "Undead", "verified": false },
+    { "id": "beelzemon", "name": "Beelzemon", "stage": "Mega", "attribute": "Virus", "type": "Demon Lord", "verified": false },
+    { "id": "beelzemon-bm", "name": "Beelzemon (Blast Mode)", "stage": "Mega", "attribute": "Virus", "type": "Demon Lord", "verified": false }
+  ],
+  "evolutions": [
+    { "from": "zurumon", "to": "yaamon", "requirements": {}, "verified": false },
+    { "from": "yaamon", "to": "impmon", "requirements": {}, "verified": false },
+    { "from": "impmon", "to": "devimon", "requirements": {}, "verified": false },
+    { "from": "impmon", "to": "wizardmon", "requirements": {}, "verified": false },
+    { "from": "devimon", "to": "skullsatamon", "requirements": {}, "verified": false },
+    { "from": "wizardmon", "to": "skullsatamon", "requirements": {}, "verified": false },
+    { "from": "skullsatamon", "to": "beelzemon", "requirements": {}, "verified": false },
+    { "from": "beelzemon", "to": "beelzemon-bm", "requirements": {}, "verified": false }
+  ]
+}
