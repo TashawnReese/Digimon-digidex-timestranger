@@ -25,6 +25,12 @@ every Digimon, its digivolutions and requirements, level 99 stats, resistances, 
 
 Your team and any data edits are saved on your device (localStorage).
 
+## Also in this repo: Multiverse Quest
+
+[`quest/`](quest/) is a separate app: a text role-playing game with an AI Game
+Master where you can play as a character from any franchise, or anything else.
+See [quest/README.md](quest/README.md).
+
 ## Data
 
 Bundled data lives in [`data/digimon.json`](data/digimon.json):
