@@ -165,7 +165,7 @@ label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4
 .avatar {
   flex: 0 0 auto;
   width: 44px; height: 44px;
-  border-radius: 50%;
+  border-radius: 10px;
   display: grid; place-items: center;
   font-weight: 700;
   background: var(--surface-2);
@@ -174,7 +174,7 @@ label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4
   overflow: hidden;
 }
 .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--surface-2); }
-.avatar.lg { width: 72px; height: 72px; font-size: 1.6rem; }
+.avatar.lg { width: 88px; height: 88px; font-size: 1.6rem; }
 .attr-Vaccine { border-color: var(--vaccine); }
 .attr-Data { border-color: var(--data); }
 .attr-Virus { border-color: var(--virus); }
@@ -300,3 +300,8 @@ dialog h2 { margin-top: 0; font-size: 1.1rem; }
 .resist.null b { color: var(--vaccine); }
 
 .skill { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); margin-bottom: 8px; }
+
+.mini { display: inline-flex; align-items: center; gap: 8px; }
+.mini img { width: 28px; height: 28px; border-radius: 6px; background: var(--surface); flex: 0 0 auto; }
+.tree-node.mini { display: inline-flex; padding: 4px 10px 4px 4px; }
+.tree-node.mini img { width: 24px; height: 24px; }

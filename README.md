@@ -6,7 +6,8 @@ your phone's browser, add it to your home screen, and it works like an app,
 including offline.
 
 Game data comes from [Game8's Time Stranger guide](https://game8.co/games/Digimon-Story-Time-Stranger/archives/554944):
-every Digimon, its digivolutions and requirements, level 99 stats, resistances, skills and traits.
+every Digimon, its picture, its digivolutions and requirements, level 99 stats, resistances, skills
+and traits. Pictures are stored in `images/digimon/` so they work offline.
 
 ## Features
 
@@ -55,7 +56,7 @@ one page every 1.5 seconds and caches pages in `tools/.cache/`. Delete that
 folder to fetch fresh copies.
 
 ```sh
-pip install beautifulsoup4 lxml
+pip install beautifulsoup4 lxml pillow
 python3 tools/scrape_game8.py
 ```
 

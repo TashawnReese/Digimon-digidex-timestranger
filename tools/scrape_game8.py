@@ -8,8 +8,11 @@ skills, resistances, traits and digivolution requirements.
 Pages are cached in tools/.cache so reruns don't hit the site again.
 Delete that folder to fetch fresh copies.
 
-    pip install beautifulsoup4 lxml
+    pip install beautifulsoup4 lxml pillow
     python3 tools/scrape_game8.py
+
+Digimon pictures are saved to images/digimon/<id>.webp so the app works
+offline. Existing pictures are kept; delete one to fetch it again.
 """
 
 import json
@@ -26,6 +29,7 @@ CHART_URL = BASE + '554944'
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / '.cache'
 OUT = ROOT / 'data' / 'digimon.json'
+IMAGES = ROOT / 'images' / 'digimon'
 DELAY = 1.5  # seconds between requests
 USER_AGENT = 'Mozilla/5.0 (compatible; DigiDexTimeStranger/1.0; personal fan app)'
 
@@ -58,6 +62,25 @@ def fetch(url):
     path.write_text(html, encoding='utf-8')
     time.sleep(DELAY)
     return html
+
+
+def save_image(url, digimon_id):
+    """Download a Digimon's picture as WebP; returns its path relative to the app."""
+    from io import BytesIO
+    from PIL import Image
+
+    rel = f'images/digimon/{digimon_id}.webp'
+    path = ROOT / rel
+    if path.exists():
+        return rel
+    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    with urllib.request.urlopen(req, timeout=30) as res:
+        img = Image.open(BytesIO(res.read()))
+        img.load()
+    IMAGES.mkdir(parents=True, exist_ok=True)
+    img.convert('RGBA').save(path, 'WEBP', quality=85, method=6)
+    time.sleep(0.3)
+    return rel
 
 
 def text(el):
@@ -295,6 +318,12 @@ def main():
                     'specialSkills', 'attachmentSkills', 'traits'):
             if info.get(key):
                 d[key] = info[key]
+        if d.get('image'):
+            try:
+                d['imageSource'] = d['image']
+                d['image'] = save_image(d['image'], d['id'])
+            except Exception as err:
+                print(f'  no picture for {e["name"]}: {err}', file=sys.stderr)
         d['source'] = url
         d['verified'] = True
         digimon.append(d)
@@ -315,7 +344,7 @@ def main():
     stages_present = [s for s in STAGES if any(d.get('stage') == s for d in digimon)]
     stages_present += sorted({d['stage'] for d in digimon if d.get('stage') and d['stage'] not in STAGES})
     out = {
-        'version': 2,
+        'version': 3,
         'game': 'Digimon Story: Time Stranger',
         'source': CHART_URL,
         'scraped': time.strftime('%Y-%m-%d'),

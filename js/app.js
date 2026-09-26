@@ -26,9 +26,16 @@ const initials = name => esc(name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2));
 
 function avatar(d, size = '') {
   const img = d.image
-    ? `<img src="${esc(d.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+    ? `<img src="${esc(d.image)}" alt="" loading="lazy" onerror="this.remove()">`
     : '';
   return `<span class="avatar ${size} attr-${esc(d.attribute)}" aria-hidden="true">${initials(d.name)}${img}</span>`;
+}
+
+// A Digimon's name with its small picture, as a link to its page.
+function miniLink(id, cls = '') {
+  const d = store.getDigimon(id);
+  const img = d?.image ? `<img src="${esc(d.image)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  return `<a class="mini ${cls}" href="#/digimon/${encodeURIComponent(id)}">${img}${esc(d?.name ?? id)}</a>`;
 }
 
 function badges(d) {
@@ -186,7 +193,7 @@ function evoRow(e, otherId) {
   return `
     <div class="evo">
       <div class="evo-head">
-        <a href="#/digimon/${encodeURIComponent(otherId)}">${esc(other?.name ?? otherId)}</a>
+        ${miniLink(otherId)}
         <span>
           <span class="dir">${esc(other?.stage ?? '')}</span>
           <button class="btn small" data-edit-evo="${esc(e.from)}|${esc(e.to)}" aria-label="Edit requirements">Edit</button>
@@ -207,7 +214,7 @@ function treeHTML(currentId, depth = 2) {
   }
   return `<div class="tree">${[...byStage].map(([stage, ds]) => `
     <div class="tree-col"><h4>${esc(stage)}</h4>
-      ${ds.map(d => `<a class="tree-node ${d.id === currentId ? 'current' : ''}" href="#/digimon/${encodeURIComponent(d.id)}">${esc(d.name)}</a>`).join('')}
+      ${ds.map(d => miniLink(d.id, `tree-node ${d.id === currentId ? 'current' : ''}`)).join('')}
     </div>`).join('')}</div>`;
 }
 
@@ -275,7 +282,7 @@ function renderDigimon(id) {
       ${prev.map(e => `
         <div class="evo">
           <div class="evo-head">
-            <a href="#/digimon/${encodeURIComponent(e.from)}">${esc(digimonName(e.from))}</a>
+            ${miniLink(e.from)}
             <button class="btn small" data-edit-evo="${esc(e.from)}|${esc(e.to)}">Edit</button>
           </div>
           ${reqsHTML(e.requirements)}
@@ -325,7 +332,7 @@ function pathHTML(path, doneCount = 0) {
     <li class="${i < doneCount ? 'done' : i === doneCount ? 'next' : ''}">
       <div class="evo">
         <div class="evo-head">
-          <span>${esc(digimonName(s.from))} &#8594; <a href="#/digimon/${encodeURIComponent(s.to)}">${esc(digimonName(s.to))}</a></span>
+          <span class="mini">${esc(digimonName(s.from))} &#8594; ${miniLink(s.to)}</span>
           <span class="dir">${s.dir === 'up' ? 'Digivolve' : 'De-digivolve'}</span>
         </div>
         ${s.dir === 'up' ? reqsHTML(s.evo.requirements) : ''}
